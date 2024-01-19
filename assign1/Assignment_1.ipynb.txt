@@ -1,0 +1,636 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mEK2QYPrX78R"
+      },
+      "source": [
+        "# Assignment 01: Supervised learning, linear models, and loss functions [100 points]\n",
+        "\n",
+        "In this assignment, you're going to hard code OLS and LAD cost functions to fit regression lines to a data set. For hint, refer to the lecture slides and follow the same structure for your coding, functions etc.\n",
+        "\n",
+        "## Data set\n",
+        "`Assignment_1_data.csv` represents the marks, number of courses taken, and study time of 100 students.\n",
+        "\n",
+        "## Caveat\n",
+        "Once you are done, please do the following steps:\n",
+        "\n",
+        "1.  Restart your kernel by clicking 'Kernel' > 'Restart & Run All'.\n",
+        "\n",
+        "2.  Fix any errors which result from this.\n",
+        "\n",
+        "3.  Repeat steps 1 and 2 until your notebook runs errors free.\n",
+        "\n",
+        "4.  Submit your completed notebook to OWL by the deadline.\n",
+        "\n",
+        "5. Do not clear the answer outputs of your cells. When we open your notebooks for grading the outputs must be there, else marks will be deducted."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Toolbox"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 45,
+      "metadata": {
+        "id": "aBu-equFX78Y"
+      },
+      "outputs": [],
+      "source": [
+        "# Import all the necessary packages:\n",
+        "import matplotlib.pyplot as plt\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "import scipy.stats as ss\n",
+        "import scipy.optimize as so\n",
+        "from IPython.display import display\n",
+        "%matplotlib inline"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "m8CtqKgpX78f"
+      },
+      "source": [
+        "---\n",
+        "## Part 1\n",
+        "### Question 1.1 [14 points]\n",
+        "\n",
+        "\n",
+        "Read the `Assignment_1_data.csv` file as a `pandas.DataFrame`. Use appropriate pandas commands to show the descriptive statistics of the dataset as well as its first 10 rows."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 363
+        },
+        "id": "WdFNvFsRUdx9",
+        "outputId": "507d39ad-1491-44be-83c8-fd7c3172294e"
+      },
+      "outputs": [],
+      "source": [
+        "# 6 points\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "56WSoK7NNzCL"
+      },
+      "source": [
+        "Add a new column to the dataframe and name it as \"time_study_avg\". Divide each student's \"time_study\" by his/her \"number_courses\" to calculate this new attribute. Then, drop the original \"time_study\" column as we do not need it anymore."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 2,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 206
+        },
+        "id": "EQC-xYSPNx58",
+        "outputId": "07810838-a0b0-4bf5-da58-ab4b15594f48"
+      },
+      "outputs": [],
+      "source": [
+        "# 2 pts\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "sSRuABSlHlqr"
+      },
+      "source": [
+        "Compute the Pearson’s Correlation Coefficient between study time per course and marks. Then Investigate the relationship between the students' study time and marks by plotting a scatter plot of the `time_study_avg` (x axis) and `Marks` columns (y axis). Add an `alpha` (transparency of the plotted dots) in case some data are overlapping. Remember to label the axes."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 3,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 467
+        },
+        "id": "S-d20YM-IPr7",
+        "outputId": "9627b28d-76d3-4f26-f852-accd2a88005f"
+      },
+      "outputs": [],
+      "source": [
+        "# 4 points\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Written question:** What do you see here? Discuss your findings. [2 points]"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "XUVK0ZGmTAcE"
+      },
+      "source": [
+        "<font color='yellow'>**Written answer:**\n",
+        "\n",
+        "Here...</font>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "aLTkjzp2X78w"
+      },
+      "source": [
+        "---\n",
+        "### Question 1.2 [4 point]\n",
+        "\n",
+        "Recall that the linear model, we obtain predictions by computing\n",
+        "\n",
+        "$ \\hat{\\mathbf{y}} = \\mathbf{X} \\hat{\\beta} $\n",
+        "\n",
+        "Here, $\\mathbf{X}$ is a design matrix which includes a column of ones, $\\hat{\\beta}$ are coefficients, and $\\hat{\\mathbf{y}}$ are outcomes.  Write a function `linearModelPredict` to compute linear model predictions given data and a coefficient vector.  The function should take as it's arguments a 1d-array of coefficients `b` and the design matrix `X` as a 2d-array and return linear model predictions `yp`.\n",
+        "\n",
+        "Test the function by setting\n",
+        "\n",
+        "```\n",
+        "X = np.array([[1,0],[1,-1],[1,2]])\n",
+        "b = np.array([0.1,0.3])\n",
+        "```\n",
+        "\n",
+        "Call your function using these values.\n",
+        "\n",
+        "Report $\\hat{\\mathbf{y}}$.\n",
+        "\n",
+        "What is the dimensionality of the numpy-array that you get back?\n",
+        "\n",
+        "Hint:  Read the documentation for `np.dot` or the `@` operator in `numpy`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 4,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "So7kD_OPVQNI",
+        "outputId": "a1ccb7be-3dc6-42a5-c1ce-63dfa045b6d7"
+      },
+      "outputs": [],
+      "source": [
+        "# 4pt\n",
+        "# YOUR CODE HERE:\n",
+        "\n",
+        "def linearModelPredict(b,X):\n",
+        "    # complete it...\n",
+        "\n",
+        "\n",
+        "    return yp\n",
+        "\n",
+        "# Test\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 50,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "iGjp5-9rKga0",
+        "outputId": "b28f080a-ed59-4e2d-c21b-de3b7741a292"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Using a 2d array...\n",
+            "X looks like:\n",
+            " [[1. 0.]\n",
+            " [0. 1.]]\n",
+            "b looks like:\n",
+            " [[2.]\n",
+            " [2.]]\n",
+            "X@b is \n",
+            "  [[2.]\n",
+            " [2.]]\n",
+            "\n",
+            "\n",
+            "Using a 1d array...\n",
+            "X looks like:\n",
+            " [[1. 0.]\n",
+            " [0. 1.]]\n",
+            "b looks like:\n",
+            " [2. 2.]\n",
+            "X@b is \n",
+            "  [2. 2.]\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Note that b can either be a 2d array or a 1d array and the multiplication will still work\n",
+        "# This requires you to be cognizant about shapes and keep track of the dimension.\n",
+        "# Here are some examples\n",
+        "\n",
+        "# b is a 2d array\n",
+        "print('Using a 2d array...')\n",
+        "X = np.eye(2)\n",
+        "b = 2*np.ones(2).reshape(-1,1)\n",
+        "\n",
+        "print(\"X looks like:\\n\", X)\n",
+        "print(\"b looks like:\\n\", b)\n",
+        "#Note, the result of this multiplication is a 2d array\n",
+        "print(\"X@b is \\n \", linearModelPredict(b,X))\n",
+        "\n",
+        "\n",
+        "# b is a 1d array\n",
+        "print('\\n\\nUsing a 1d array...')\n",
+        "X = np.eye(2)\n",
+        "b = 2*np.ones(2)\n",
+        "\n",
+        "print(\"X looks like:\\n\", X)\n",
+        "print(\"b looks like:\\n\", b)\n",
+        "#Note, the result of this multiplication is a 1d array\n",
+        "print(\"X@b is \\n \", linearModelPredict(b,X))"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CrZokVidX787"
+      },
+      "source": [
+        "---\n",
+        "### Question 1.3 [10 points]\n",
+        "\n",
+        "Write a function `linearModelLossRSS` which computes and returns the loss function for an OLS model parameterized by $\\beta$, as well as the gradient of the loss.  The function should take as its first argument a 1d-array `beta` of coefficients for the linear model, as its second argument the design matrix `X` as a 2d-array, and as its third argument a 1d-array `y` of observed outcomes.\n",
+        "\n",
+        "Test the function with these values:\n",
+        "\n",
+        "```\n",
+        "X = np.array([[1,0],[1,-1],[1,2]])\n",
+        "b = np.array([0.1,0.3])\n",
+        "y = np.array([0,0.4,2])\n",
+        "```\n",
+        "\n",
+        "It must return:\n",
+        "\n",
+        "`RSS of 2.06`\n",
+        "\n",
+        "Gradient of `[-3.6 -4. ]`\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 5,
+      "metadata": {
+        "id": "IHuS9PJJVZiW"
+      },
+      "outputs": [],
+      "source": [
+        "# 8 pts\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "O7tEGnLsVb4L"
+      },
+      "source": [
+        "**Written question:** To minimize the loss, do you need increase or decrease the value of the parameters? [2 points]\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gT7yoJLIt9Xs"
+      },
+      "source": [
+        "<font color='yellow'>**Written answer:**\n",
+        "\n",
+        "Here... </font>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "zpfl2A86X79D"
+      },
+      "source": [
+        "---\n",
+        "### Question 1.4 [12 points]\n",
+        "\n",
+        "Now that you've implemented a loss function in question 1.3, it is now time to minimize it.\n",
+        "\n",
+        "Write a function `linearModelFit` to fit a linear model.  The function should take as its first argument the design matrix `X` as a 2d-array, as its second argument a 1d-array `y` of outcomes, and as its third argument a function  `lossfcn` which returns as a tuple the value of the loss, as well as the gradient of the loss. As a result, it should return the estimated betas and the R2.\n",
+        "\n",
+        "Test the function with these values:\n",
+        "```\n",
+        "X = np.array([[1,0],[1,-1],[1,2]])\n",
+        "y = np.array([0,0.4,2])\n",
+        "```\n",
+        "It must return:\n",
+        "\n",
+        "Betas: `[0.6 0.6]`\n",
+        "\n",
+        "R2: `0.75`\n",
+        "\n",
+        "\n",
+        "**Hint**: Use `scipy.optimize.minimize` (refer to the slides) to minimize the loss function\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 6,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HfGGnSoRt7us",
+        "outputId": "4f6c3e66-bf95-493b-a5f4-a69fe5498e98"
+      },
+      "outputs": [],
+      "source": [
+        "# 12 pts\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CJ2ZergqX79L"
+      },
+      "source": [
+        "---\n",
+        "### Question 1.5 [14 points]\n",
+        "\n",
+        "Use the above functions to fit your model to the given dataset. Then use your model and the fitted parameters to make predictions along a grid of equally spaced students' study time. You can get these by generating a new X-matrix with 100 equally space time_study_avgs (using for example [```np.linspace```](https://numpy.org/doc/stable/reference/generated/numpy.linspace.html)). Plot the data and add a line for the predicted values. Also report the $R^2$ value for the fit. You can do this by either printing out the $R^2$ of the fit or putting it on your plot via the built-in `annotate` function of `matplotlib`.\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 7,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 651
+        },
+        "id": "Ije0Hki9t44-",
+        "outputId": "cbc3f8c8-0841-4f27-f706-967aebf512cc"
+      },
+      "outputs": [],
+      "source": [
+        "# 14 pts\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "## Part 2: LAD Regression"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "A3emHgAcX79R"
+      },
+      "source": [
+        "---\n",
+        "### Question 2.1 [10 points]\n",
+        "\n",
+        "In the previous section, we worked with the OLS loss.  Now, we'll implement a linear model with the least absolute deviation (LAD) loss.\n",
+        "\n",
+        "Write a function `linearModelLossLAD` which computes the least absolute deviation loss function for a linear model  parameterized by $\\beta$, as well as the gradient of the loss.  The function should take as its first argument a 1d-array `beta` of coefficients for the linear model, as its second argument the design matrix `X` as a 2d-array, and as its third argument a 1d-array `y` of observed outcomes.\n",
+        "\n",
+        "Test the function with the values:\n",
+        "\n",
+        "```\n",
+        "X = np.array([[1,0],[1,-1],[1,2]])\n",
+        "b = np.array([0.1,0.3])\n",
+        "y = np.array([0,0.4,2])\n",
+        "```\n",
+        "It must return:\n",
+        "\n",
+        "LAD of `2.0`\n",
+        "\n",
+        "Gradient of `[-1. -1.]`"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 8,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "K-Fz6flkuD0j",
+        "outputId": "a77abe0a-1652-425a-ecec-476cde4784c4"
+      },
+      "outputs": [],
+      "source": [
+        "# 10 points\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "MTx_xIR5X79V"
+      },
+      "source": [
+        "---\n",
+        "### Question 2.2: [10 points]\n",
+        "\n",
+        "\n",
+        "Use the above functions to fit your LAD model. Use your model to make predictions along a grid of 100 equally spaced students time_study_avg.  Once fit, add the fitted line to the scatter plot as in question 1.5.  Also report the $R^2$-value.\n",
+        "\n",
+        "Note: If you recieve an error from the optimizer, it may be because the loss function for the LAD model is not differentiable at its minimum.  This will lead to some gradient based optimizers to fail to converge.  If this happens to you then pass `method=\"Powell\"` to `scipy.optimize.minimize`.\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 9,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 705
+        },
+        "id": "WjzoFgyOuFPc",
+        "outputId": "0473bb60-28e3-4ceb-da81-e451f5d17237"
+      },
+      "outputs": [],
+      "source": [
+        "# 8 points\n",
+        "# YOUR CODE HERE:\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "**Written question**: What is the difference in the fit obtained with an L1 as compared to the L2 cost function? How their $R^2$ values compare? Why? [2 points]"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Z0tRMvEiuGJe"
+      },
+      "source": [
+        "<font color='yellow'> **Written Answer:**\n",
+        "\n",
+        "Here...</font>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "4Tza7fD4X79a"
+      },
+      "source": [
+        "---\n",
+        "### Question 2.3: [12 points]\n",
+        "\n",
+        "Fit an OLS model to all student data with the `linear_model` module from the `sklearn` package by using the [`LinearRegression`](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html) class. The features (i.e., predictors) to use are average study time, and number of courses."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 10,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "l7xLq3wPuJBf",
+        "outputId": "3e5651e2-4fc6-4638-e01a-ec83aa007e46"
+      },
+      "outputs": [],
+      "source": [
+        "# 8 points\n",
+        "# YOUR CODE HERE:\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "In no more than two sentences, comment on the $R^2$ values from your `sklearn` model and previous models. Are they similar? [4 pts]"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3X_4N0aouLD5"
+      },
+      "source": [
+        "<font color='yellow'> **Written Answer:**\n",
+        "\n",
+        "Here...</font>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "## Part 3: Custom loss function"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "### Question 3.1: [4 points]\n",
+        "\n",
+        "Assume that the following function has been proposed to you to use as a new loss function for regression:\n",
+        "\n",
+        "$$L_3(\\hat{\\beta}) = \\sum_{i=1}^{n} ({y_i-\\hat{y_i}})^3$$\n",
+        "\n",
+        "What do you think about this new loss function, would you accept it? Please, explain."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "\n",
+        "<font color='yellow'>**Written answer:**\n",
+        "\n",
+        "Here...\n",
+        "</font>\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "### Question 3.2: [10 points]\n",
+        "\n",
+        "Regardless of your answer to Question 4.1, taking $\\: \\hat{\\mathbf{y}} = \\mathbf{X.^2} \\hat{\\beta}\\:$ as your functional form for regression (note that $\\mathbf{X.^2}$ implies element-wise power), use your knowledge of calculus to calculate the gradient of $\\: L_3(\\hat{\\beta}).$ Type your answer (including the intermediate steps) in the cell below in Latex format. Note that $\\hat{\\beta}=[\\beta_0, \\beta_1]^T$, and $\\mathbf{X}$ is an $n$-by-$2$ matrix."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "<font color='yellow'>**Written answer:**\n",
+        "\n",
+        "Here...\n",
+        "\n",
+        "</font>\n"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.10.12"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
